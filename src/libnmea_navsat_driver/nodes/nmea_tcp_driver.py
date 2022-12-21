@@ -44,34 +44,44 @@ from libnmea_navsat_driver.driver import RosNMEADriver
 
 
 def nmea_handler(driver, sensor_data):
-    for line in sensor_data:
-        line = line.strip()
-        if not line:
-            continue
 
-        try:
-            nmea_sentences = line.replace("\r\n", "").split("$")
-            for nmea_sentence in nmea_sentences:
-                nmea_sentence = "$" + nmea_sentence
-                driver.add_sentence(nmea_sentence, RosNMEADriver.get_frame_id()) 
-                
-        except UnicodeError as e:
-            rospy.logwarn("Skipped reading a line from the UDP socket because it could not be "
-                            "decoded as an ASCII string. The bytes were {0}".format(line))
-        except ValueError:
-            rospy.logwarn(
-                "ValueError, likely due to missing fields in the NMEA "
-                "message. Please report this issue at "
-                "https://github.com/ros-drivers/nmea_navsat_driver"
-                ", including the following:\n\n"
-                "```\n" +
-                repr(line) + "\n\n" +
-                traceback.format_exc() +
-                "```")
+    sensor_data = sensor_data.decode("utf-8").strip()
+    # print("start")
+    # print(sensor_data)
+    # print("end")
+
+    try:
+        nmea_sentences = sensor_data.replace("\r\n", "").split("$")
+        # print("start")
+        # print(nmea_sentences)
+        # print("end")
+
+        rospy.logdebug("start")
+        for nmea_sentence in nmea_sentences:
+            if not nmea_sentence:
+                continue
+            nmea_sentence = "$" + nmea_sentence
+            rospy.logdebug("nmea:" + nmea_sentence)
+            driver.add_sentence(nmea_sentence, RosNMEADriver.get_frame_id()) 
+        rospy.logdebug("end")
+            
+    except UnicodeError as e:
+        rospy.logwarn("Skipped reading a line from the UDP socket because it could not be "
+                        "decoded as an ASCII string. The bytes were {0}".format(nmea_sentence))
+    except ValueError:
+        rospy.logwarn(
+            "ValueError, likely due to missing fields in the NMEA "
+            "message. Please report this issue at "
+            "https://github.com/ros-drivers/nmea_navsat_driver"
+            ", including the following:\n\n"
+            "```\n" +
+            repr(nmea_sentence) + "\n\n" +
+            traceback.format_exc() +
+            "```")
 
 
 def main():
-    rospy.init_node('nmea_tcp_driver')
+    rospy.init_node('nmea_tcp_driver', anonymous=True, log_level=rospy.DEBUG)
 
     try:
         local_ip = rospy.get_param('~ip', '0.0.0.0')
@@ -89,11 +99,15 @@ def main():
     serverAddress = (local_ip, local_port)
     sock.connect(serverAddress)
 
+    datas = b''
     try:
         while not rospy.is_shutdown():
-            data = sock.recv(1024)
+            data = sock.recv(2048)
+            datas += data
             if not data: break
-            nmea_handler(driver=nmea_driver, sensor_data=data)
+            if data == b"$":
+                nmea_handler(driver=nmea_driver, sensor_data=datas)
+                datas = b''
 
     except Exception:
         rospy.logerr(traceback.format_exc())

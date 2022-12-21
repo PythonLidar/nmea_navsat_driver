@@ -3,14 +3,14 @@
   <!-- A simple launch file for the nmea_serial_driver node. -->
 
   <arg name="ip" default="192.168.0.2" />
-  <arg name="port" default="6001" />
+  <arg name="port" default="6000" />
   <arg name="timeout_sec" default="5" />
   <arg name="frame_id" default="gps" />
   <arg name="use_GNSS_time" default="False" />
   <arg name="time_ref_source" default="gps" />
   <arg name="useRMC" default="False" />
 
-  <node name="nmea_socket_driver_node" pkg="nmea_navsat_driver" type="nmea_tcp_driver" output="screen">
+  <node name="nmea_tcp_driver_node" pkg="nmea_navsat_driver" type="nmea_tcp_driver" output="screen">
     <param name="ip" value="$(arg ip)"/>
     <param name="port" value="$(arg port)"/>
     <param name="timeout_sec" value="$(arg timeout_sec)"/>
